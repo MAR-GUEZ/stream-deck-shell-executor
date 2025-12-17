@@ -139,6 +139,55 @@ open -a "Visual Studio Code" ~/projects/myapp
 killall "Google Chrome" && open -a "Google Chrome"
 ```
 
+### Running Commands in a Separate Terminal Window
+
+For long-running processes (like dev servers), you can open them in a separate Terminal window where you can see the output and easily stop them with `Ctrl+C`:
+
+**Basic Pattern (Terminal.app):**
+```bash
+osascript -e 'tell application "Terminal" to do script "cd /path/to/project && your-command"'
+```
+
+**Examples:**
+
+```bash
+# Start a development server in a new Terminal window
+osascript -e 'tell application "Terminal" to do script "cd ~/projects/myapp && yarn start"'
+
+# Run a build process in a new window
+osascript -e 'tell application "Terminal" to do script "cd ~/projects/myapp && npm run build"'
+
+# Git operations in a new window
+osascript -e 'tell application "Terminal" to do script "cd ~/projects/myapp && git pull && npm install"'
+```
+
+**With Terminal Activation (brings Terminal to front):**
+```bash
+osascript -e 'tell application "Terminal" to activate' -e 'tell application "Terminal" to do script "cd /path/to/project && your-command"'
+```
+
+**For iTerm2 users:**
+```bash
+osascript -e 'tell application "iTerm2" to create window with default profile command "cd /path/to/project && your-command"'
+```
+
+**Auto-close Terminal when command completes:**
+```bash
+osascript -e 'tell application "Terminal" to do script "cd /path/to/project && your-command && exit"'
+```
+
+**Benefits:**
+- See real-time output in the Terminal window
+- Easy to stop with `Ctrl+C`
+- Terminal stays open for debugging
+- No process management needed
+- Full visibility into what's running
+
+**Configuration:**
+- **Shell Command:** Use the `osascript` pattern above
+- **Working Directory:** Leave empty (use `cd` in the command instead)
+- **Timeout:** Can leave at 30 seconds (osascript returns immediately)
+
 ## Error Handling
 
 - Commands that fail will show a red X indicator
