@@ -1,0 +1,27 @@
+{
+  "name": "com.lmg.shell-executor",
+  "version": "1.0.0",
+  "description": "Execute shell commands from your Stream Deck",
+  "main": "bin/plugin.js",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch"
+  },
+  "keywords": [
+    "stream-deck",
+    "shell",
+    "command",
+    "executor"
+  ],
+  "author": "LMG",
+  "license": "MIT",
+  "devDependencies": {
+    "@elgato/streamdeck": "^1.0.0",
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.19.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "reflect-metadata": "^0.2.2"
+  }
+}

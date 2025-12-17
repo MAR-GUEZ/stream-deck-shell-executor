@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Shell Executor Settings</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #2d2d2d;
+      color: #d4d4d4;
+      font-size: 13px;
+    }
+
+    .sdpi-item {
+      margin-bottom: 16px;
+    }
+
+    .sdpi-item-label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #d4d4d4;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 8px;
+      background-color: #3c3c3c;
+      border: 1px solid #555;
+      border-radius: 4px;
+      color: #d4d4d4;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 12px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #0e639c;
+      background-color: #404040;
+    }
+
+    .help-text {
+      font-size: 11px;
+      color: #999;
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    .variable-example {
+      background-color: #1e1e1e;
+      padding: 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+      font-size: 11px;
+    }
+
+    input[type="number"] {
+      width: auto;
+      min-width: 100px;
+    }
+
+    input[type="checkbox"] {
+      width: auto;
+      margin-right: 8px;
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="sdpi-item">
+    <label class="sdpi-item-label" for="command">Shell Command *</label>
+    <textarea id="command" placeholder="echo 'Hello World'"></textarea>
+    <div class="help-text">
+      Enter the shell command to execute when the button is pressed.
+    </div>
+  </div>
+
+  <div class="sdpi-item">
+    <label class="sdpi-item-label" for="timeout">Timeout (seconds)</label>
+    <input type="number" id="timeout" min="1" max="300" value="30" />
+    <div class="help-text">
+      Maximum time to wait for command execution (1-300 seconds).
+    </div>
+  </div>
+
+  <div class="sdpi-item">
+    <label class="sdpi-item-label" for="workingDir">Working Directory</label>
+    <input type="text" id="workingDir" placeholder="/Users/username/projects" />
+    <div class="help-text">
+      Optional: Set the working directory for command execution. Leave empty for home directory.
+    </div>
+  </div>
+
+  <div class="sdpi-item">
+    <div class="checkbox-container">
+      <input type="checkbox" id="logOutput" checked />
+      <label class="sdpi-item-label" for="logOutput" style="margin-bottom: 0;">Log Command Output</label>
+    </div>
+    <div class="help-text">
+      When enabled, command output (stdout/stderr) will be logged to the Stream Deck logs.
+    </div>
+  </div>
+
+  <div class="sdpi-item">
+    <label class="sdpi-item-label">Available Variables</label>
+    <div class="help-text" style="margin-top: 0;">
+      You can use these variables in your command:
+    </div>
+    <div class="variable-example">
+      {{date}} - Current date (YYYY-MM-DD)<br>
+      {{time}} - Current time (HH:MM:SS)<br>
+      {{timestamp}} - Unix timestamp<br>
+      {{user}} - Current username<br>
+      {{home}} - Home directory path
+    </div>
+    <div class="help-text" style="margin-top: 8px;">
+      Example: echo "Build started at {{time}} by {{user}}"
+    </div>
+  </div>
+
+  <script>
+    // Global settings object
+    let globalSettings = {};
+    let websocket = null;
+    let uuid = null;
+    let actionInfo = {};
+
+    // Connect to Stream Deck
+    function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, inActionInfo) {
+      uuid = inUUID;
+      actionInfo = JSON.parse(inActionInfo);
+
+      websocket = new WebSocket('ws://127.0.0.1:' + inPort);
+
+      websocket.onopen = function() {
+        const json = {
+          event: inRegisterEvent,
+          uuid: inUUID
+        };
+        websocket.send(JSON.stringify(json));
+
+        // Request current settings
+        websocket.send(JSON.stringify({
+          event: 'getSettings',
+          context: uuid
+        }));
+      };
+
+      websocket.onmessage = function(evt) {
+        const jsonObj = JSON.parse(evt.data);
+
+        if (jsonObj.event === 'didReceiveSettings') {
+          globalSettings = jsonObj.payload.settings;
+          updateUI();
+        }
+      };
+    }
+
+    // Update UI with current settings
+    function updateUI() {
+      document.getElementById('command').value = globalSettings.command || '';
+      document.getElementById('timeout').value = globalSettings.timeout || 30;
+      document.getElementById('workingDir').value = globalSettings.workingDir || '';
+      document.getElementById('logOutput').checked = globalSettings.logOutput !== false;
+    }
+
+    // Save settings to Stream Deck
+    function saveSettings() {
+      globalSettings.command = document.getElementById('command').value;
+      globalSettings.timeout = parseInt(document.getElementById('timeout').value) || 30;
+      globalSettings.workingDir = document.getElementById('workingDir').value;
+      globalSettings.logOutput = document.getElementById('logOutput').checked;
+
+      if (websocket && websocket.readyState === 1) {
+        const json = {
+          event: 'setSettings',
+          context: uuid,
+          payload: globalSettings
+        };
+        websocket.send(JSON.stringify(json));
+      }
+    }
+
+    // Add event listeners
+    document.getElementById('command').addEventListener('input', saveSettings);
+    document.getElementById('timeout').addEventListener('change', saveSettings);
+    document.getElementById('workingDir').addEventListener('input', saveSettings);
+    document.getElementById('logOutput').addEventListener('change', saveSettings);
+  </script>
+</body>
+</html>
